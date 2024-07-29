@@ -7,11 +7,12 @@ import json
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # SERVER_ID = 351901521283252234  # SUH DUDE
 SERVER_ID = 961311552907149365  # Bot Test
-# CHANNEL_NAME = 'wrong-chat'
+COPY_PASTA_ID = 1267527871677730906 # copy-pasta
 
 with open('message_counts.json', 'r') as file:
     message_counts = json.load(file)
@@ -24,7 +25,8 @@ async def on_ready():
     global message_counts
 
     print(f'Bot is connected to Discord')
-    update_message_counts.start(message_counts)
+    if not update_message_counts.is_running():
+        update_message_counts.start(message_counts)
 
 
 @bot.event
@@ -54,13 +56,34 @@ async def on_message(message):
     await bot.process_commands(message)
 
 
-@tasks.loop(hours=.01)
+@tasks.loop(hours=.0166)
 async def update_message_counts(counts):
     with open('message_counts.json', 'w') as f:
         json.dump(counts, f)
 
-    print("Message Counts Updated")
+    # print("Message Counts Updated")
 
+@bot.command()
+async def copypasta(ctx):
+    global COPY_PASTA_ID
+
+    # if the message is a reply
+    if ctx.message.reference:
+        message = ctx.message
+        # Capture message metadata
+        reply_id = message.reference.message_id
+        author_id = message.reference.resolved.author.id
+        orig_msg = await ctx.fetch_message(reply_id)
+        copy_pasta = orig_msg.content
+
+        channel = bot.get_channel(COPY_PASTA_ID)
+        author_message = await channel.send(f'Originally from <@{author_id}>\n')
+        await channel.send(copy_pasta, reference=author_message)
+
+        print(f'Copy Pasta Recorded: \n {copy_pasta}')
+
+    else:
+        await ctx.send('Please reply to a message')
 
 @bot.command()
 async def wrongchat(ctx):
